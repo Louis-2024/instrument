@@ -80,48 +80,54 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+int isOn=0;
 
-
-//period=0.56ms
+//C4: period=3.89ms
 int phase_1=0;
-int period_1=50;
-uint16_t sin_values_1[50];
+int period_1=389;
+uint16_t sin_values_1[389];
 
-//period=0.78ms
+//E4: period=3.03ms
 int phase_2=0;
-int period_2=70;
-uint16_t sin_values_2[70];
+int period_2=303;
+uint16_t sin_values_2[303];
 
-//period=1.0ms
+//G4: period=2.55ms
 int phase_3=0;
-int period_3=90;
-uint16_t sin_values_3[90];
+int period_3=255;
+uint16_t sin_values_3[255];
 
-//0: 0.56ms / 1: 0.78ms / 2: 1.0ms
-int switchIndex=0;
+//A4: period=2.27ms
+int phase_4=0;
+int period_4=227;
+uint16_t sin_values_4[227];
+
+//C5: period=1.91ms
+int phase_5=0;
+int period_5=191;
+uint16_t sin_values_5[191];
+
+char C4_block[]= "        ";
+char E4_block[]= "                ";
+char G4_block[]= "                        ";
+char A4_block[]= "                                ";
+char C5_block[]= "                                        ";
+
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN){
        if(GPIO_PIN == myButton_Pin){
               HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
-
-              if(switchIndex==0){
-            	  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-            	  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_1,period_1,DAC_ALIGN_12B_R);
-            	  switchIndex++;
-              }else if(switchIndex==1){
-            	  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-            	  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_2,period_2,DAC_ALIGN_12B_R);
-            	  switchIndex++;
-              }else if(switchIndex==2){
-            	  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-            	  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_3,period_3,DAC_ALIGN_12B_R);
-            	  switchIndex=0;
+              if(isOn==0){
+            	  isOn=1;
+              }else{
+            	  isOn=0;
               }
 
        } else {
               __NOP();
        }
 }
+
 
 
 
@@ -184,6 +190,15 @@ int main(void)
       sin_values_3[i]=4000*(arm_sin_f32(radians)+1)/2;
   }
 
+  for(int i=0;i<period_4;i++){
+         float radians=2*pi*(i%period_4)/period_4;
+      sin_values_4[i]=4000*(arm_sin_f32(radians)+1)/2;
+  }
+
+  for(int i=0;i<period_5;i++){
+         float radians=2*pi*(i%period_5)/period_5;
+      sin_values_5[i]=4000*(arm_sin_f32(radians)+1)/2;
+  }
 
 
 
@@ -200,25 +215,54 @@ int main(void)
 		  buffer[i]='\0';
 	  }
 
+	  int a1=accelero[0];
+	  int a2=accelero[1];
+	  int a3=accelero[2];
+
 
 	  BSP_ACCELERO_AccGetXYZ(accelero);
-	  sprintf(buffer, " [accelero:%d,%d,%d] \n", (int)accelero[0],(int)accelero[1],(int)accelero[2]);
-	  HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
+	  //sprintf(buffer, " [accelero:%d,%d,%d] \r\n", a1,a2,a3);
+	  //HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
 
 
-	  if(accelero[2]>accelero[0] && accelero[2]>accelero[1]){
+	  /*if(accelero[2]>accelero[0] && accelero[2]>accelero[1]){
 		  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_2,period_2,DAC_ALIGN_12B_R);
+		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_3,period_3,DAC_ALIGN_12B_R);
 	  }else if(accelero[1]>accelero[0] && accelero[1]>accelero[2]){
 		  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
 		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_1,period_1,DAC_ALIGN_12B_R);
 	  }else if(-accelero[1]>accelero[0] && -accelero[1]>accelero[2]){
 		  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_3,period_3,DAC_ALIGN_12B_R);
+		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_5,period_5,DAC_ALIGN_12B_R);
+	  }*/
+
+	  //if(abs(a1)<400 && abs(a2)<400 && a3>700){
+		//  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_3,period_3,DAC_ALIGN_12B_R);
+	  //}
+
+	  if(isOn==1){
+		  if(a1>800){
+			  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_1,period_1,DAC_ALIGN_12B_R);
+			  sprintf(buffer, "%s|||||||| \r\n",C4_block);
+		  }else if (200<a1 && a1<=800){
+			  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_2,period_2,DAC_ALIGN_12B_R);
+			  sprintf(buffer, "%s|||||||| \r\n",E4_block);
+		  }else if (-200<a1 && a1<=200){
+			  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_3,period_3,DAC_ALIGN_12B_R);
+			  sprintf(buffer, "%s|||||||| \r\n",G4_block);
+		  }else if (-800<a1 && a1<=-200){
+			  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_4,period_4,DAC_ALIGN_12B_R);
+			  sprintf(buffer, "%s|||||||| \r\n",A4_block);
+		  }else if(a1<=-800){
+			  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,sin_values_5,period_5,DAC_ALIGN_12B_R);
+			  sprintf(buffer, "%s|||||||| \r\n",C5_block);
+		  }
+		  HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
 	  }
 
-	  HAL_Delay(500);
-
+	  HAL_Delay(300);
+	  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+	  HAL_Delay(200);
 
   }
   /* USER CODE END 3 */
