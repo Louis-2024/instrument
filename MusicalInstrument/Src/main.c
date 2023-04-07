@@ -117,11 +117,30 @@ uint16_t c5_vol3[191];
 uint16_t c5_vol2[191];
 uint16_t c5_vol1[191];
 
+//E5: period=1.52ms
+int phase_6=0;
+int period_6=152;
+uint16_t e5_vol3[152];
+uint16_t e5_vol2[152];
+uint16_t e5_vol1[152];
+
+
+//G5: period=1.28ms
+int phase_7=0;
+int period_7=128;
+uint16_t g5_vol3[128];
+uint16_t g5_vol2[128];
+uint16_t g5_vol1[128];
+
+
+
 char C4_block[]= "    ";
 char E4_block[]= "            ";
 char G4_block[]= "                    ";
 char A4_block[]= "                            ";
 char C5_block[]= "                                    ";
+char E5_block[]= "                                            ";
+char G5_block[]= "                                                    ";
 
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN){
@@ -220,6 +239,20 @@ int main(void)
       c5_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
   }
 
+  for(int i=0;i<period_6;i++){
+      float radians=2*pi*(i%period_6)/period_6;
+      e5_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
+      e5_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
+      e5_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
+  }
+
+  for(int i=0;i<period_7;i++){
+      float radians=2*pi*(i%period_7)/period_7;
+      g5_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
+      g5_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
+      g5_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
+  }
+
 
 
   /* USER CODE END 2 */
@@ -249,7 +282,7 @@ int main(void)
 	  }
 
 	  if(isOn==1){
-		  if(a1>800){
+		  if(a1>875){
 			  switch (volume_counter){
 			  	  case 0:
 				  	  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol1,period_1,DAC_ALIGN_12B_R);
@@ -262,7 +295,7 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C4_block);
-		  }else if (200<a1 && a1<=800){
+		  }else if (525<a1 && a1<=875){
 			  switch (volume_counter){
 			  	  case 0:
 			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol1,period_2,DAC_ALIGN_12B_R);
@@ -275,20 +308,20 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),E4_block);
-		  }else if (-200<a1 && a1<=200){
+		  }else if(175<a1 && a1<=525){
 			  switch (volume_counter){
-			  	  case 0:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol1,period_3,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol2,period_3,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol3,period_3,DAC_ALIGN_12B_R);
-			  		  break;
+				  case 0:
+					  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol1,period_3,DAC_ALIGN_12B_R);
+				  break;
+				  case 1:
+					  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol2,period_3,DAC_ALIGN_12B_R);
+					  break;
+				  case 2:
+					  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol3,period_3,DAC_ALIGN_12B_R);
+					  break;
 			  }
-			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),G4_block);
-		  }else if (-800<a1 && a1<=-200){
+			  sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),G4_block);
+		  }else if (-175<a1 && a1<=175){
 			  switch (volume_counter){
 			  	  case 0:
 			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol1,period_4,DAC_ALIGN_12B_R);
@@ -301,7 +334,7 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),A4_block);
-		  }else if(a1<=-800){
+		  }else if (-525<a1 && a1<=-175){
 			  switch (volume_counter){
 			  	  case 0:
 			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol1,period_5,DAC_ALIGN_12B_R);
@@ -314,12 +347,38 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C5_block);
+		  }else if(-875<a1 && a1<=-525){
+			  switch (volume_counter){
+			  	  case 0:
+			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol1,period_6,DAC_ALIGN_12B_R);
+				  	  break;
+			  	  case 1:
+			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol2,period_6,DAC_ALIGN_12B_R);
+			  		  break;
+			  	  case 2:
+			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol3,period_6,DAC_ALIGN_12B_R);
+			  		  break;
+			  }
+			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),E5_block);
+		  }else if(a1<=-875){
+			  switch (volume_counter){
+			  	  case 0:
+			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol1,period_7,DAC_ALIGN_12B_R);
+				  	  break;
+			  	  case 1:
+			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol2,period_7,DAC_ALIGN_12B_R);
+			  		  break;
+			  	  case 2:
+			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol3,period_7,DAC_ALIGN_12B_R);
+			  		  break;
+			  }
+			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),G5_block);
 		  }
 
 		  HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
-		  HAL_Delay(300);
+		  HAL_Delay(500);
 		  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-		  HAL_Delay(200);
+		  HAL_Delay(0);
 	  }else{
 		  if(a2>800){
 			  volume_counter=(volume_counter+1)%3;
