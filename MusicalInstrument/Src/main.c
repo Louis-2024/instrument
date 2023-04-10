@@ -80,7 +80,9 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-int isOn=0;
+int isPlaying=0;
+int isRecording=0;
+int isPlayingRecording=0;
 
 //C4: period=3.89ms
 int phase_1=0;
@@ -132,7 +134,8 @@ uint16_t g5_vol3[128];
 uint16_t g5_vol2[128];
 uint16_t g5_vol1[128];
 
-
+int recording[1000];
+int recordingLength=0;
 
 char C4_block[]= "    ";
 char E4_block[]= "            ";
@@ -145,12 +148,24 @@ char G5_block[]= "                                                    ";
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN){
        if(GPIO_PIN == myButton_Pin){
-              HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
-              if(isOn==0){
-            	  isOn=1;
-              }else{
-            	  isOn=0;
-              }
+
+    	   if(isPlaying==0){
+    		   isPlaying=1;
+    	   }else if(isPlaying==1){
+    		   if(isRecording==0){
+    			   isRecording=1;
+    			   HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
+    			   //starts recording
+    		   }else{
+    			   isRecording=0;
+    			   isPlayingRecording=1;
+    			   HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
+    			   //stop recording
+    			   //starts playing
+    			   //isPlayingRecording=0;
+    			   //recordingLength=0;
+    		   }
+    	   }
 
        } else {
               __NOP();
@@ -281,7 +296,7 @@ int main(void)
 		  buffer[i]='\0';
 	  }
 
-	  if(isOn==1){
+	  if(isPlaying==1 && isPlayingRecording==0){
 		  if(a1>875){
 			  switch (volume_counter){
 			  	  case 0:
@@ -295,6 +310,12 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C4_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=1;
+				  //recordingLength++;
+			  //}
+
 		  }else if (525<a1 && a1<=875){
 			  switch (volume_counter){
 			  	  case 0:
@@ -308,6 +329,12 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),E4_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=2;
+				  //recordingLength++;
+			  //}
+
 		  }else if(175<a1 && a1<=525){
 			  switch (volume_counter){
 				  case 0:
@@ -321,6 +348,12 @@ int main(void)
 					  break;
 			  }
 			  sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),G4_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=3;
+				  //recordingLength++;
+			  //}
+
 		  }else if (-175<a1 && a1<=175){
 			  switch (volume_counter){
 			  	  case 0:
@@ -334,6 +367,12 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),A4_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=4;
+				  //recordingLength++;
+			  //}
+
 		  }else if (-525<a1 && a1<=-175){
 			  switch (volume_counter){
 			  	  case 0:
@@ -347,6 +386,12 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C5_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=5;
+				  //recordingLength++;
+			  //}
+
 		  }else if(-875<a1 && a1<=-525){
 			  switch (volume_counter){
 			  	  case 0:
@@ -360,6 +405,12 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),E5_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=6;
+				  //recordingLength++;
+			  //}
+
 		  }else if(a1<=-875){
 			  switch (volume_counter){
 			  	  case 0:
@@ -373,6 +424,12 @@ int main(void)
 			  		  break;
 			  }
 			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),G5_block);
+
+			  //if(isRecording==1){
+				  //recording[recordingLength]=7;
+				  //recordingLength++;
+			  //}
+
 		  }
 
 		  HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
