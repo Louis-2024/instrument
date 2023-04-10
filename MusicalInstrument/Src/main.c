@@ -25,6 +25,7 @@
 #include "arm_math.h"
 #include <stdio.h>
 #include <stm32l475e_iot01_accelero.h>
+#include "stm32l475e_iot01_qspi.h"
 
 
 #define pi 3.14159265359
@@ -44,6 +45,17 @@ int16_t accelero[3];
 char buffer[100];
 int volume_counter=0;
 
+
+#define WRITE_READ_ADDR  0x00
+
+void * Addr_Start = WRITE_READ_ADDR;
+
+void * Addr_Read = WRITE_READ_ADDR;
+
+
+
+uint8_t example_arr[6] = { 0, 1, 2, 3, 4,150};
+uint8_t example_copy[6];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -56,6 +68,8 @@ DAC_HandleTypeDef hdac1;
 DMA_HandleTypeDef hdma_dac_ch1;
 
 I2C_HandleTypeDef hi2c2;
+
+QSPI_HandleTypeDef hqspi;
 
 TIM_HandleTypeDef htim2;
 
@@ -73,12 +87,15 @@ static void MX_DAC1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_QUADSPI_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
 
 int isPlaying=0;
 int isRecording=0;
@@ -210,7 +227,18 @@ int main(void)
   MX_TIM2_Init();
   MX_I2C2_Init();
   MX_USART1_UART_Init();
+  MX_QUADSPI_Init();
   /* USER CODE BEGIN 2 */
+
+  BSP_QSPI_Init();
+
+    if (BSP_QSPI_Erase_Block((uint32_t) WRITE_READ_ADDR) != QSPI_OK)
+    	  Error_Handler();
+      if (BSP_QSPI_Write(example_arr, (uint32_t) WRITE_READ_ADDR, sizeof(example_arr)) != QSPI_OK)
+    	  Error_Handler();
+      if (BSP_QSPI_Read(example_copy, (uint32_t) WRITE_READ_ADDR, sizeof(example_copy)) != QSPI_OK)
+    	  Error_Handler();
+
 
 
   BSP_ACCELERO_Init();
@@ -593,6 +621,39 @@ static void MX_I2C2_Init(void)
 }
 
 /**
+  * @brief QUADSPI Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_QUADSPI_Init(void)
+{
+
+  /* USER CODE BEGIN QUADSPI_Init 0 */
+
+  /* USER CODE END QUADSPI_Init 0 */
+
+  /* USER CODE BEGIN QUADSPI_Init 1 */
+
+  /* USER CODE END QUADSPI_Init 1 */
+  /* QUADSPI parameter configuration*/
+  hqspi.Instance = QUADSPI;
+  hqspi.Init.ClockPrescaler = 1;
+  hqspi.Init.FifoThreshold = 1;
+  hqspi.Init.SampleShifting = QSPI_SAMPLE_SHIFTING_NONE;
+  hqspi.Init.FlashSize = 1;
+  hqspi.Init.ChipSelectHighTime = QSPI_CS_HIGH_TIME_1_CYCLE;
+  hqspi.Init.ClockMode = QSPI_CLOCK_MODE_0;
+  if (HAL_QSPI_Init(&hqspi) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN QUADSPI_Init 2 */
+
+  /* USER CODE END QUADSPI_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -700,6 +761,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */

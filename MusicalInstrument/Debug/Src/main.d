@@ -27,15 +27,17 @@ Src/main.o: ../Src/main.c ../Inc/main.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h \
+ ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_qspi.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h \
  ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h \
  ../Inc/arm_math.h ../Drivers/CMSIS/Include/cmsis_compiler.h \
  ../Inc/stm32l475e_iot01_accelero.h ../Inc/stm32l475e_iot01.h \
- /Users/weihengxiao/Desktop/MusicalInstrument/Drivers/Components/../Components/lsm6dsl/lsm6dsl.h \
- /Users/weihengxiao/Desktop/MusicalInstrument/Drivers/Components/../Components/lsm6dsl/../Common/accelero.h \
- /Users/weihengxiao/Desktop/MusicalInstrument/Drivers/Components/../Components/lsm6dsl/../Common/gyro.h
+ c:\users\satya\desktop\instrument\musicalinstrument\drivers\components\lsm6dsl\lsm6dsl.h \
+ c:\users\satya\desktop\instrument\musicalinstrument\drivers\components\common\accelero.h \
+ c:\users\satya\desktop\instrument\musicalinstrument\drivers\components\common\gyro.h \
+ ../Inc/stm32l475e_iot01_qspi.h ../Inc/mx25r6435f.h
 ../Inc/main.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal.h:
 ../Inc/stm32l4xx_hal_conf.h:
@@ -65,6 +67,7 @@ Src/main.o: ../Src/main.c ../Inc/main.h \
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_i2c_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_pwr_ex.h:
+../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_qspi.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h:
 ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h:
@@ -73,6 +76,8 @@ Src/main.o: ../Src/main.c ../Inc/main.h \
 ../Drivers/CMSIS/Include/cmsis_compiler.h:
 ../Inc/stm32l475e_iot01_accelero.h:
 ../Inc/stm32l475e_iot01.h:
-/Users/weihengxiao/Desktop/MusicalInstrument/Drivers/Components/../Components/lsm6dsl/lsm6dsl.h:
-/Users/weihengxiao/Desktop/MusicalInstrument/Drivers/Components/../Components/lsm6dsl/../Common/accelero.h:
-/Users/weihengxiao/Desktop/MusicalInstrument/Drivers/Components/../Components/lsm6dsl/../Common/gyro.h:
+c:\users\satya\desktop\instrument\musicalinstrument\drivers\components\lsm6dsl\lsm6dsl.h:
+c:\users\satya\desktop\instrument\musicalinstrument\drivers\components\common\accelero.h:
+c:\users\satya\desktop\instrument\musicalinstrument\drivers\components\common\gyro.h:
+../Inc/stm32l475e_iot01_qspi.h:
+../Inc/mx25r6435f.h:
