@@ -27,9 +27,11 @@
 #include <stm32l475e_iot01_accelero.h>
 #include "stm32l475e_iot01_qspi.h"
 
-
 #define pi 3.14159265359
+#define WRITE_READ_ADDR  0x00
 
+void * Addr_Start = WRITE_READ_ADDR;
+void * Addr_Read = WRITE_READ_ADDR;
 
 /* USER CODE END Includes */
 
@@ -45,17 +47,6 @@ int16_t accelero[3];
 char buffer[100];
 int volume_counter=0;
 
-
-#define WRITE_READ_ADDR  0x00
-
-void * Addr_Start = WRITE_READ_ADDR;
-
-void * Addr_Read = WRITE_READ_ADDR;
-
-
-
-uint8_t example_arr[6] = { 0, 1, 2, 3, 4,150};
-uint8_t example_copy[6];
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -94,8 +85,6 @@ static void MX_QUADSPI_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-
 
 int isPlaying=0;
 int isRecording=0;
@@ -152,7 +141,8 @@ uint16_t g5_vol2[128];
 uint16_t g5_vol1[128];
 
 int recording[1000];
-int recordingLength=0;
+int recording_copy[1000];
+int rec_count=0;
 
 char C4_block[]= "    ";
 char E4_block[]= "            ";
@@ -165,24 +155,49 @@ char G5_block[]= "                                                    ";
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_PIN){
        if(GPIO_PIN == myButton_Pin){
+         if(isPlaying==0){
+                isPlaying=1;
+         }else if(isPlaying==1){
+                if(isRecording==0){
+                      isRecording=1;
+                      HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
+                }else{
+                      isRecording=0;
+                      isPlayingRecording=1;
+                      HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
+                      HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+                      if (BSP_QSPI_Erase_Block((uint32_t) WRITE_READ_ADDR) != QSPI_OK)
+                            Error_Handler();
+                            if (BSP_QSPI_Write(recording, (uint32_t) WRITE_READ_ADDR,
+                      sizeof(recording)) != QSPI_OK)
+                            Error_Handler();
+                            if (BSP_QSPI_Read(recording_copy, (uint32_t) WRITE_READ_ADDR,
+                      sizeof(recording_copy)) != QSPI_OK)
+                            Error_Handler();
 
-    	   if(isPlaying==0){
-    		   isPlaying=1;
-    	   }else if(isPlaying==1){
-    		   if(isRecording==0){
-    			   isRecording=1;
-    			   HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
-    			   //starts recording
-    		   }else{
-    			   isRecording=0;
-    			   isPlayingRecording=1;
-    			   HAL_GPIO_TogglePin(myLED_GPIO_Port, myLED_Pin);
-    			   //stop recording
-    			   //starts playing
-    			   //isPlayingRecording=0;
-    			   //recordingLength=0;
-    		   }
-    	   }
+                      for(int i=0;i<rec_count;i++){
+                             if(recording_copy[i]==1){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol3,period_1,DAC_ALIGN_12B_R);
+                             }else if(recording[i]==2){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol3,period_2,DAC_ALIGN_12B_R);
+                             }else if(recording[i]==3){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol3,period_3,DAC_ALIGN_12B_R);
+                             }else if(recording[i]==4){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol3,period_4,DAC_ALIGN_12B_R);
+                             }else if(recording[i]==5){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol3,period_5,DAC_ALIGN_12B_R);
+                             }else if(recording[i]==6){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol3,period_6,DAC_ALIGN_12B_R);
+                             }else if(recording[i]==7){
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol3,period_7,DAC_ALIGN_12B_R);
+                             }
+                             //HAL_Delay(500);
+                             HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+                      }
+                      isPlayingRecording=0;
+                      rec_count=0;
+                }
+         }
 
        } else {
               __NOP();
@@ -231,40 +246,28 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   BSP_QSPI_Init();
-
-    if (BSP_QSPI_Erase_Block((uint32_t) WRITE_READ_ADDR) != QSPI_OK)
-    	  Error_Handler();
-      if (BSP_QSPI_Write(example_arr, (uint32_t) WRITE_READ_ADDR, sizeof(example_arr)) != QSPI_OK)
-    	  Error_Handler();
-      if (BSP_QSPI_Read(example_copy, (uint32_t) WRITE_READ_ADDR, sizeof(example_copy)) != QSPI_OK)
-    	  Error_Handler();
-
-
-
   BSP_ACCELERO_Init();
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_DAC_Start(&hdac1,DAC_CHANNEL_1);
 
-
-
   for(int i=0;i<period_1;i++){
-	  float radians=2*pi*(i%period_1)/period_1;
-	  c4_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
-	  c4_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
-	  c4_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
+         float radians=2*pi*(i%period_1)/period_1;
+         c4_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
+         c4_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
+         c4_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
   }
 
   for(int i=0;i<period_2;i++){
-	  float radians=2*pi*(i%period_2)/period_2;
-	  e4_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
-	  e4_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
+         float radians=2*pi*(i%period_2)/period_2;
+         e4_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
+         e4_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
       e4_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
   }
 
   for(int i=0;i<period_3;i++){
-	  float radians=2*pi*(i%period_3)/period_3;
-	  g4_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
-	  g4_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
+         float radians=2*pi*(i%period_3)/period_3;
+         g4_vol1[i]=3000*(arm_sin_f32(radians)+1)/2;
+         g4_vol2[i]=3500*(arm_sin_f32(radians)+1)/2;
       g4_vol3[i]=4000*(arm_sin_f32(radians)+1)/2;
   }
 
@@ -302,179 +305,160 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+  while (isPlayingRecording==0)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  for(int i=0;i<100;i++){
-		  buffer[i]='\0';
-	  }
+         for(int i=0;i<100;i++){
+                buffer[i]='\0';
+         }
 
-	  BSP_ACCELERO_AccGetXYZ(accelero);
-	  int a1=accelero[0];
-	  int a2=accelero[1];
-	  int a3=accelero[2];
+         BSP_ACCELERO_AccGetXYZ(accelero);
+         int a1=accelero[0];
+         int a2=accelero[1];
 
-	  //sprintf(buffer, " [accelero:%d,%d,%d] \r\n", a1,a2,a3);
-	  //HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
+         for(int i=0;i<100;i++){
+                buffer[i]='\0';
+         }
 
+         if(isPlaying==1 && isPlayingRecording==0){
+                if(a1>875){
+                       if(isRecording==1){
+                             recording[rec_count]=1;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                              case 0:
+                                      HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol1,period_1,DAC_ALIGN_12B_R);
+                                    break;
+                              case 1:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol2,period_1,DAC_ALIGN_12B_R);
+                                     break;
+                              case 2:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol3,period_1,DAC_ALIGN_12B_R);
+                                     break;
+                       }
+                       sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C4_block);
+                }else if (525<a1 && a1<=875){
+                       if(isRecording==1){
+                             recording[rec_count]=2;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                              case 0:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol1,period_2,DAC_ALIGN_12B_R);
+                                    break;
+                              case 1:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol2,period_2,DAC_ALIGN_12B_R);
+                                     break;
+                              case 2:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol3,period_2,DAC_ALIGN_12B_R);
+                                     break;
+                       }
+                       sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),E4_block);
+                }else if(175<a1 && a1<=525){
+                       if(isRecording==1){
+                             recording[rec_count]=3;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                             case 0:
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol1,period_3,DAC_ALIGN_12B_R);
+                             break;
+                             case 1:
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol2,period_3,DAC_ALIGN_12B_R);
+                                    break;
+                             case 2:
+                                    HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol3,period_3,DAC_ALIGN_12B_R);
+                                    break;
+                       }
+                       sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),G4_block);
+                }else if (-175<a1 && a1<=175){
+                       if(isRecording==1){
+                             recording[rec_count]=4;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                              case 0:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol1,period_4,DAC_ALIGN_12B_R);
+                                    break;
+                              case 1:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol2,period_4,DAC_ALIGN_12B_R);
+                                     break;
+                              case 2:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol3,period_4,DAC_ALIGN_12B_R);
+                                     break;
+                       }
+                       sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),A4_block);
+                }else if (-525<a1 && a1<=-175){
+                       if(isRecording==1){
+                             recording[rec_count]=5;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                              case 0:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol1,period_5,DAC_ALIGN_12B_R);
+                                    break;
+                              case 1:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol2,period_5,DAC_ALIGN_12B_R);
+                                     break;
+                              case 2:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol3,period_5,DAC_ALIGN_12B_R);
+                                     break;
+                       }
+                       sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C5_block);
+                }else if(-875<a1 && a1<=-525){\
+                       if(isRecording==1){
+                             recording[rec_count]=6;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                              case 0:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol1,period_6,DAC_ALIGN_12B_R);
+                                    break;
+                              case 1:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol2,period_6,DAC_ALIGN_12B_R);
+                                     break;
+                              case 2:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol3,period_6,DAC_ALIGN_12B_R);
+                                     break;
+                       }
+                       sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),E5_block);
+                }else if(a1<=-875){
+                       if(isRecording==1){
+                             recording[rec_count]=7;
+                             rec_count++;
+                       }
+                       switch (volume_counter){
+                              case 0:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol1,period_7,DAC_ALIGN_12B_R);
+                                    break;
+                              case 1:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol2,period_7,DAC_ALIGN_12B_R);
+                                     break;
+                              case 2:
+                                     HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol3,period_7,DAC_ALIGN_12B_R);
+                                     break;
+                       }
+                       sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),G5_block);
+                }
 
-	  for(int i=0;i<100;i++){
-		  buffer[i]='\0';
-	  }
+                HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
+                HAL_Delay(500);
+                HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
+                HAL_Delay(0);
 
-	  if(isPlaying==1 && isPlayingRecording==0){
-		  if(a1>875){
-			  switch (volume_counter){
-			  	  case 0:
-				  	  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol1,period_1,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol2,period_1,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c4_vol3,period_1,DAC_ALIGN_12B_R);
-			  		  break;
-			  }
-			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C4_block);
+         }else if(isPlaying==0){
 
-			  //if(isRecording==1){
-				  //recording[recordingLength]=1;
-				  //recordingLength++;
-			  //}
+                if(a2>800){
+                       volume_counter=(volume_counter+1)%3;
+                }
+                sprintf(buffer, "[volume:%d] \r\n", (volume_counter+1));
+                HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
+                HAL_Delay(2000);
 
-		  }else if (525<a1 && a1<=875){
-			  switch (volume_counter){
-			  	  case 0:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol1,period_2,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol2,period_2,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e4_vol3,period_2,DAC_ALIGN_12B_R);
-			  		  break;
-			  }
-			  sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),E4_block);
-
-			  //if(isRecording==1){
-				  //recording[recordingLength]=2;
-				  //recordingLength++;
-			  //}
-
-		  }else if(175<a1 && a1<=525){
-			  switch (volume_counter){
-				  case 0:
-					  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol1,period_3,DAC_ALIGN_12B_R);
-				  break;
-				  case 1:
-					  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol2,period_3,DAC_ALIGN_12B_R);
-					  break;
-				  case 2:
-					  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g4_vol3,period_3,DAC_ALIGN_12B_R);
-					  break;
-			  }
-			  sprintf(buffer,"[volume:%d]%s|||||||| \r\n",(volume_counter+1),G4_block);
-
-			  //if(isRecording==1){
-				  //recording[recordingLength]=3;
-				  //recordingLength++;
-			  //}
-
-		  }else if (-175<a1 && a1<=175){
-			  switch (volume_counter){
-			  	  case 0:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol1,period_4,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol2,period_4,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,a4_vol3,period_4,DAC_ALIGN_12B_R);
-			  		  break;
-			  }
-			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),A4_block);
-
-			  //if(isRecording==1){
-				  //recording[recordingLength]=4;
-				  //recordingLength++;
-			  //}
-
-		  }else if (-525<a1 && a1<=-175){
-			  switch (volume_counter){
-			  	  case 0:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol1,period_5,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol2,period_5,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,c5_vol3,period_5,DAC_ALIGN_12B_R);
-			  		  break;
-			  }
-			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),C5_block);
-
-			  //if(isRecording==1){
-				  //recording[recordingLength]=5;
-				  //recordingLength++;
-			  //}
-
-		  }else if(-875<a1 && a1<=-525){
-			  switch (volume_counter){
-			  	  case 0:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol1,period_6,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol2,period_6,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,e5_vol3,period_6,DAC_ALIGN_12B_R);
-			  		  break;
-			  }
-			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),E5_block);
-
-			  //if(isRecording==1){
-				  //recording[recordingLength]=6;
-				  //recordingLength++;
-			  //}
-
-		  }else if(a1<=-875){
-			  switch (volume_counter){
-			  	  case 0:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol1,period_7,DAC_ALIGN_12B_R);
-				  	  break;
-			  	  case 1:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol2,period_7,DAC_ALIGN_12B_R);
-			  		  break;
-			  	  case 2:
-			  		  HAL_DAC_Start_DMA(&hdac1,DAC_CHANNEL_1,g5_vol3,period_7,DAC_ALIGN_12B_R);
-			  		  break;
-			  }
-			  sprintf(buffer, "[volume:%d]%s|||||||| \r\n",(volume_counter+1),G5_block);
-
-			  //if(isRecording==1){
-				  //recording[recordingLength]=7;
-				  //recordingLength++;
-			  //}
-
-		  }
-
-		  HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
-		  HAL_Delay(500);
-		  HAL_DAC_Stop_DMA(&hdac1, DAC_CHANNEL_1);
-		  HAL_Delay(0);
-	  }else{
-		  if(a2>800){
-			  volume_counter=(volume_counter+1)%3;
-		  }
-		  sprintf(buffer, "[volume:%d] \r\n", (volume_counter+1));
-		  HAL_UART_Transmit(&huart1, (uint8_t *)&buffer, sizeof(buffer), HAL_MAX_DELAY);
-		  HAL_Delay(2000);
-	  }
-
-
-
+         }
   }
   /* USER CODE END 3 */
 }
